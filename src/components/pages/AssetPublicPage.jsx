@@ -37,7 +37,7 @@ export default function AssetPublicPage() {
   if (!asset) {
     return (
       <div className="public-page">
-        <div className="empty-state">Ye asset nahi mila. QR code check karo.</div>
+        <div className="empty-state">This asset was not found. Please check the QR code.</div>
       </div>
     );
   }

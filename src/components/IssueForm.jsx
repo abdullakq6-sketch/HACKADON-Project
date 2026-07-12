@@ -57,7 +57,7 @@ export default function IssueForm({ assetId, onSubmitted }) {
       <div className="form-group">
         <textarea
           className="textarea"
-          placeholder="Problem kya hai? (e.g. AC se pani leak ho raha hai)"
+          placeholder="What is the problem?(e.g. AC se pani leak ho raha hai)"
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}

@@ -1,8 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth"; // 1. Yeh line add karein
+import { getAuth } from "firebase/auth"; 
 
-// Aapka Firebase configuration object
 const firebaseConfig = {
   apiKey: "AIzaSyA2GsapelFGjADEvTXWZF16j0nXl7YpGfw",
   authDomain: "maintainiq-ai.firebaseapp.com",
@@ -16,4 +15,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
-export const auth = getAuth(app); // 2. Yeh line bhi add karein
+export const auth = getAuth(app); 

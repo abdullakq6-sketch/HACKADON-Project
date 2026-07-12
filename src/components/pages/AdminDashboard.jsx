@@ -145,10 +145,10 @@ export default function AdminDashboard() {
 
       {assets.length === 0 ? (
         <div className="empty-state">
-          Koi asset abhi register nahi hua. "+ Add Asset" pe click karo.
+         No asset has been registered yet. Click "+ Add Asset".
         </div>
       ) : filteredAssets.length === 0 ? (
-        <div className="empty-state">Is search/filter se koi asset nahi mila.</div>
+        <div className="empty-state">No assets were found with this search/filter.</div>
       ) : (
         <div className="asset-list">
           {filteredAssets.map((asset) => (

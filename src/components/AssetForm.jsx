@@ -30,7 +30,7 @@ export default function AssetForm({ onAdded }) {
       onAdded && onAdded();
     } catch (err) {
       console.error("Error adding asset:", err);
-      alert("Asset add nahi ho saka. Firebase config check karo.");
+      alert("Could not add the asset. Please check the Firebase configuration.");
     } finally {
       setSaving(false);
     }

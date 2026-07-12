@@ -22,7 +22,7 @@ export default function AssetCard({ asset, issues }) {
   const handleDelete = async (e) => {
     e.stopPropagation();
     const confirmed = window.confirm(
-      `"${asset.name}" ko delete karna hai? Iski saari maintenance history bhi permanently delete ho jayegi.`
+      `"${asset.name}" Are you sure you want to delete this? All of its maintenance history will also be permanently deleted.`
     );
     if (!confirmed) return;
 
@@ -35,7 +35,7 @@ export default function AssetCard({ asset, issues }) {
       await deleteDoc(doc(db, "assets", asset.id));
     } catch (err) {
       console.error("Error deleting asset:", err);
-      alert("Asset delete nahi ho saka. Dobara try karo.");
+      alert("Could not delete the asset. Please try again..");
       setDeleting(false);
     }
   };
