@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { db } from "../../firebase.js";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db, auth } from "../../firebase.js";
 import AssetForm from "../AssetForm.jsx";
 import AssetCard from "../AssetCard.jsx";
 
@@ -12,31 +12,46 @@ export default function AdminDashboard() {
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
+    const uid = auth.currentUser ? auth.currentUser.uid : null;
+    if (!uid) return;
+
     const unsubAssets = onSnapshot(
-      query(collection(db, "assets"), orderBy("createdAt", "desc")),
-      (snap) => setAssets(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+      query(collection(db, "assets"), where("ownerId", "==", uid)),
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setAssets(list);
+      }
     );
+
     const unsubIssues = onSnapshot(collection(db, "issues"), (snap) =>
       setIssues(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
     );
+
     return () => {
       unsubAssets();
       unsubIssues();
     };
   }, []);
 
-  const openIssuesCount = issues.filter((i) => i.status !== "Resolved").length;
-  const inProgressCount = issues.filter((i) => i.status === "In Progress").length;
-  const resolvedCount = issues.filter((i) => i.status === "Resolved").length;
+  const ownAssetIds = useMemo(() => new Set(assets.map((a) => a.id)), [assets]);
+  const ownIssues = useMemo(
+    () => issues.filter((i) => ownAssetIds.has(i.assetId)),
+    [issues, ownAssetIds]
+  );
+
+  const openIssuesCount = ownIssues.filter((i) => i.status !== "Resolved").length;
+  const inProgressCount = ownIssues.filter((i) => i.status === "In Progress").length;
+  const resolvedCount = ownIssues.filter((i) => i.status === "Resolved").length;
 
   const assetsWithIssueCount = useMemo(() => {
     return assets.map((asset) => {
-      const assetOpenIssues = issues.filter(
+      const assetOpenIssues = ownIssues.filter(
         (i) => i.assetId === asset.id && i.status !== "Resolved"
       ).length;
       return { ...asset, openIssues: assetOpenIssues };
     });
-  }, [assets, issues]);
+  }, [assets, ownIssues]);
 
   const filteredAssets = useMemo(() => {
     let result = assetsWithIssueCount;
@@ -137,7 +152,7 @@ export default function AdminDashboard() {
       ) : (
         <div className="asset-list">
           {filteredAssets.map((asset) => (
-            <AssetCard key={asset.id} asset={asset} issues={issues} />
+            <AssetCard key={asset.id} asset={asset} issues={ownIssues} />
           ))}
         </div>
       )}

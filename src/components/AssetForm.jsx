@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { db, auth } from "../firebase.js";
 
 export default function AssetForm({ onAdded }) {
   const [name, setName] = useState("");
@@ -21,6 +21,7 @@ export default function AssetForm({ onAdded }) {
         location,
         serialNumber: serialNumber || "N/A",
         createdAt: serverTimestamp(),
+        ownerId: auth.currentUser ? auth.currentUser.uid : null,
       });
       setName("");
       setCategory("");

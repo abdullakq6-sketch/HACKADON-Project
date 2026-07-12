@@ -1,7 +1,9 @@
 import { QRCodeCanvas } from "qrcode.react";
 
+const SITE_URL = "https://hackadon-project.vercel.app";
+
 export default function QRCodeDisplay({ assetId, assetName }) {
-  const url = `${window.location.origin}/asset/${assetId}`;
+  const url = `${SITE_URL}/asset/${assetId}`;
 
   const handleDownload = () => {
     const canvas = document.getElementById(`qr-${assetId}`);
