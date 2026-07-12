@@ -6,6 +6,8 @@ import AdminDashboard from "./components/pages/AdminDashboard.jsx";
 import AssetPublicPage from "./components/pages/AssetPublicPage.jsx";
 import Auth from "./components/pages/Auth";
 import Home from "./components/pages/Home.jsx";
+import About from "./components/pages/About.jsx";
+import PublicDirectory from "./components/pages/PublicDirectory.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -31,7 +33,17 @@ function App() {
     <BrowserRouter>
       <div>
         <nav className="navbar">
-          <Link to="/" style={{ fontWeight: 'bold', textDecoration: 'none', color: '#4f46e5', fontSize: '20px' }}>MaintainIQ</Link>
+          <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
+            <Link to="/" className="nav-link-icon brand">
+              <span>🏠</span> MaintainIQ
+            </Link>
+            <Link to="/about" className="nav-link-icon">
+              <span>ℹ️</span> About
+            </Link>
+            <Link to="/report" className="nav-link-icon">
+              <span>📋</span> Report Issue
+            </Link>
+          </div>
 
           {user ? (
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
@@ -59,6 +71,8 @@ function App() {
 
         <Routes>
           <Route path="/asset/:assetId" element={<AssetPublicPage />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/report" element={<PublicDirectory />} />
 
           <Route
             path="/"
