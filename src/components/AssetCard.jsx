@@ -15,14 +15,16 @@ const REC_CLASS = {
 export default function AssetCard({ asset, issues }) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [clearingHistory, setClearingHistory] = useState(false);
   const assetIssues = issues.filter((i) => i.assetId === asset.id);
   const openCount = assetIssues.filter((i) => i.status !== "Resolved").length;
+  const resolvedIssues = assetIssues.filter((i) => i.status === "Resolved");
   const recommendation = getRecommendation(assetIssues);
 
   const handleDelete = async (e) => {
     e.stopPropagation();
     const confirmed = window.confirm(
-      `"${asset.name}" Are you sure you want to delete this? All of its maintenance history will also be permanently deleted.`
+      `"${asset.name}" ko delete karna hai? Iski saari maintenance history bhi permanently delete ho jayegi.`
     );
     if (!confirmed) return;
 
@@ -35,8 +37,28 @@ export default function AssetCard({ asset, issues }) {
       await deleteDoc(doc(db, "assets", asset.id));
     } catch (err) {
       console.error("Error deleting asset:", err);
-      alert("Could not delete the asset. Please try again..");
+      alert("Asset delete nahi ho saka. Dobara try karo.");
       setDeleting(false);
+    }
+  };
+
+  const handleClearHistory = async (e) => {
+    e.stopPropagation();
+    if (resolvedIssues.length === 0) return;
+
+    const confirmed = window.confirm(
+      `${resolvedIssues.length} resolved issue(s) ki history permanently delete karni hai? Ye undo nahi ho sakta.`
+    );
+    if (!confirmed) return;
+
+    setClearingHistory(true);
+    try {
+      await Promise.all(resolvedIssues.map((i) => deleteDoc(doc(db, "issues", i.id))));
+    } catch (err) {
+      console.error("Error clearing history:", err);
+      alert("History clear nahi ho saki. Dobara try karo.");
+    } finally {
+      setClearingHistory(false);
     }
   };
 
@@ -90,7 +112,14 @@ export default function AssetCard({ asset, issues }) {
           </div>
 
           <div>
-            <h4 className="section-title">Maintenance History</h4>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h4 className="section-title" style={{ margin: 0 }}>Maintenance History</h4>
+              {resolvedIssues.length > 0 && (
+                <button onClick={handleClearHistory} disabled={clearingHistory} className="delete-btn">
+                  {clearingHistory ? "Clearing..." : `Clear History (${resolvedIssues.length})`}
+                </button>
+              )}
+            </div>
             <IssueHistory issues={assetIssues} editable />
           </div>
         </div>
