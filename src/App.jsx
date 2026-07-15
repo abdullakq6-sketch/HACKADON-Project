@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "./firebase";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { auth, db } from "./firebase";
 import AdminDashboard from "./components/pages/AdminDashboard.jsx";
 import AssetPublicPage from "./components/pages/AssetPublicPage.jsx";
 import Auth from "./components/pages/Auth";
@@ -12,6 +13,7 @@ import PublicDirectory from "./components/pages/PublicDirectory.jsx";
 function App() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
+  const [openCount, setOpenCount] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -20,6 +22,34 @@ function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setOpenCount(0);
+      return;
+    }
+
+    let assetIds = [];
+    const unsubAssets = onSnapshot(
+      query(collection(db, "assets"), where("ownerId", "==", user.uid)),
+      (snap) => {
+        assetIds = snap.docs.map((d) => d.id);
+      }
+    );
+
+    const unsubIssues = onSnapshot(collection(db, "issues"), (snap) => {
+      const count = snap.docs.filter((d) => {
+        const data = d.data();
+        return assetIds.includes(data.assetId) && data.status !== "Resolved";
+      }).length;
+      setOpenCount(count);
+    });
+
+    return () => {
+      unsubAssets();
+      unsubIssues();
+    };
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -46,12 +76,16 @@ function App() {
           </div>
 
           {user ? (
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+              <Link to="/" className="notif-bell" title={`${openCount} open issues`}>
+                🔔
+                {openCount > 0 && <span className="notif-badge">{openCount}</span>}
+              </Link>
               <div
                 title={user.email}
                 style={{
                   width: '35px', height: '35px', borderRadius: '50%',
-                  backgroundColor: '#4f46e5', color: 'white', display: 'flex',
+                  backgroundColor: '#f5a623', color: '#1a1206', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', fontWeight: 'bold',
                   fontSize: '16px', textTransform: 'uppercase', cursor: 'pointer'
                 }}
@@ -78,7 +112,7 @@ function App() {
             path="/"
             element={
               checking ? (
-                <p style={{ textAlign: 'center', marginTop: '40px' }}>Loading...</p>
+                <p style={{ textAlign: 'center', marginTop: '40px', color: '#8a8a94' }}>Loading...</p>
               ) : user ? (
                 <AdminDashboard />
               ) : (

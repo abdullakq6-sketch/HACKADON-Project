@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { doc, deleteDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase.js";
 import QRCodeDisplay from "./QRCodeDisplay.jsx";
 import IssueHistory from "./IssueHistory.jsx";
@@ -15,10 +15,17 @@ const REC_CLASS = {
 export default function AssetCard({ asset, issues }) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [clearingHistory, setClearingHistory] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: asset.name,
+    category: asset.category,
+    location: asset.location,
+    serialNumber: asset.serialNumber,
+  });
+
   const assetIssues = issues.filter((i) => i.assetId === asset.id);
   const openCount = assetIssues.filter((i) => i.status !== "Resolved").length;
-  const resolvedIssues = assetIssues.filter((i) => i.status === "Resolved");
   const recommendation = getRecommendation(assetIssues);
 
   const handleDelete = async (e) => {
@@ -33,7 +40,6 @@ export default function AssetCard({ asset, issues }) {
       const issuesQuery = query(collection(db, "issues"), where("assetId", "==", asset.id));
       const issuesSnap = await getDocs(issuesQuery);
       await Promise.all(issuesSnap.docs.map((d) => deleteDoc(doc(db, "issues", d.id))));
-
       await deleteDoc(doc(db, "assets", asset.id));
     } catch (err) {
       console.error("Error deleting asset:", err);
@@ -42,23 +48,24 @@ export default function AssetCard({ asset, issues }) {
     }
   };
 
-  const handleClearHistory = async (e) => {
+  const handleSaveEdit = async (e) => {
     e.stopPropagation();
-    if (resolvedIssues.length === 0) return;
+    if (!form.name || !form.location) return;
 
-    const confirmed = window.confirm(
-      `${resolvedIssues.length} resolved issue(s) ki history permanently delete karni hai? Ye undo nahi ho sakta.`
-    );
-    if (!confirmed) return;
-
-    setClearingHistory(true);
+    setSaving(true);
     try {
-      await Promise.all(resolvedIssues.map((i) => deleteDoc(doc(db, "issues", i.id))));
+      await updateDoc(doc(db, "assets", asset.id), {
+        name: form.name,
+        category: form.category || "General",
+        location: form.location,
+        serialNumber: form.serialNumber || "N/A",
+      });
+      setEditing(false);
     } catch (err) {
-      console.error("Error clearing history:", err);
-      alert("History clear nahi ho saki. Dobara try karo.");
+      console.error("Error updating asset:", err);
+      alert("Update nahi ho saka. Dobara try karo.");
     } finally {
-      setClearingHistory(false);
+      setSaving(false);
     }
   };
 
@@ -84,24 +91,80 @@ export default function AssetCard({ asset, issues }) {
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           {openCount > 0 && <span className="open-count">{openCount} open</span>}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditing(!editing);
+              setOpen(true);
+            }}
+            className="edit-btn"
+          >
+            Edit
+          </button>
           <button onClick={handleDelete} disabled={deleting} className="delete-btn">
             {deleting ? "Deleting..." : "Delete"}
           </button>
           <button
             onClick={() => setOpen(!open)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "14px" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#6f6f7a", fontSize: "14px" }}
           >
             {open ? "▲" : "▼"}
           </button>
         </div>
       </div>
 
-      {open && (
+      {open && editing && (
+        <div style={{ padding: "0 22px 22px" }}>
+          <div className="card">
+            <h3>Asset Details Edit Karo</h3>
+            <div className="form-group">
+              <input
+                className="input"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Asset Name"
+              />
+            </div>
+            <div className="form-group grid-2">
+              <input
+                className="input"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                placeholder="Category"
+              />
+              <input
+                className="input"
+                value={form.serialNumber}
+                onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
+                placeholder="Serial Number"
+              />
+            </div>
+            <div className="form-group">
+              <input
+                className="input"
+                value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                placeholder="Location"
+              />
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button onClick={handleSaveEdit} disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+              <button onClick={() => setEditing(false)} className="btn btn-small" style={{ background: "#26262f", color: "#f2f2f5" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {open && !editing && (
         <div className="asset-body">
           <div className="asset-body-col">
             <QRCodeDisplay assetId={asset.id} assetName={asset.name} />
             <Link to={`/asset/${asset.id}`} target="_blank" className="link">
-              Public page kholo →
+             Open the public page. →
             </Link>
             {recommendation && (
               <div className={REC_CLASS[recommendation.level]}>
@@ -112,14 +175,7 @@ export default function AssetCard({ asset, issues }) {
           </div>
 
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-              <h4 className="section-title" style={{ margin: 0 }}>Maintenance History</h4>
-              {resolvedIssues.length > 0 && (
-                <button onClick={handleClearHistory} disabled={clearingHistory} className="delete-btn">
-                  {clearingHistory ? "Clearing..." : `Clear History (${resolvedIssues.length})`}
-                </button>
-              )}
-            </div>
+            <h4 className="section-title">Maintenance History</h4>
             <IssueHistory issues={assetIssues} editable />
           </div>
         </div>
